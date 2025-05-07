@@ -1,0 +1,218 @@
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.login-paper {
+    padding: 2rem;
+    border-radius: 10px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-title {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #1976d2;
+}
+
+.login-form {
+    margin-top: 1rem;
+}
+
+.submit-button {
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    text-transform: none;
+    font-weight: 600;
+}
+
+.login-page-container {
+    min-height: 100vh;
+    animation: fadeIn 0.5s ease-in-out;
+    width: 100%;
+}
+
+.login-form .MuiTextField-root {
+    margin-bottom: 16px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media(max-width: 600px) {
+    .login-paper {
+        padding: 1.5rem;
+    }
+
+    .login-info-section {
+        padding: 2rem 1rem !important;
+        margin-bottom: 1rem;
+    }
+
+    .login-stats-container {
+        flex-direction: column;
+        gap: 2rem !important;
+    }
+}
+
+/* For mid-sized screens between 800px and 1540px */
+@media (min-width: 800px) and (max-width: 1200px) {
+
+    /* Stack the content sections vertically */
+    .login-stacked-container {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 100vh;
+    }
+
+    /*Center the login page Container content*/
+
+    .login-page-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* Adjust the left info section to be at top */
+    .login-info-section {
+        order: 1;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-basis: auto !important;
+        padding: 3rem 1rem !important;
+        margin-bottom: 2rem;
+        height: auto !important;
+    }
+
+    /* Adjust the right form section to be at bottom */
+    .login-form-section {
+        order: 2;
+        width: 100% !important;
+        max-width: 450px !important;
+        flex-basis: auto !important;
+        margin: 0 auto 3rem auto !important;
+        padding: 0 1rem !important;
+        transform: none !important;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1500px) {
+
+    /* Maintain the row layout but with adjusted sizes */
+    .login-page-container {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Adjust sizes of the sections instead of stacking */
+    .login-info-section {
+        padding: 2rem !important;
+    }
+
+    .login-form-section {
+        padding: 1rem !important;
+    }
+
+    /* Make typography smaller */
+    .login-info-section h2 {
+        font-size: 2rem !important;
+    }
+
+    .login-info-section h6 {
+        font-size: 1rem !important;
+    }
+
+    /* Scale down the icon and stats */
+    .login-info-section svg {
+        font-size: 60px !important;
+    }
+
+    .login-stats-container {
+        gap: 2rem !important;
+    }
+
+    .login-stats-container h4 {
+        font-size: 1.75rem !important;
+    }
+}
+
+/* Fix for screens below 1540px */
+@media (max-width: 1540px) {
+    .login-page-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8eaec 100%);
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        height: auto !important;
+    }
+
+    .login-page-header {
+        padding: 1rem;
+    }
+
+    .login-form-section {
+        margin-left: auto;
+    }
+
+    .login-form {
+        margin-left: auto;
+    }
+}
+
+/* Stack layout only for screens below 800px */
+@media (max-width: 800px) {
+
+    /* Stack the content sections vertically */
+    .login-stacked-container {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 100vh;
+    }
+
+    /* Adjust the left info section to be at top */
+    .login-info-section {
+        order: 1;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-basis: auto !important;
+        padding: 3rem 1rem !important;
+        margin-bottom: 2rem;
+        height: auto !important;
+    }
+
+    /* Adjust the right form section to be at bottom */
+    .login-form-section {
+        order: 2;
+        width: 100% !important;
+        max-width: 450px !important;
+        flex-basis: auto !important;
+        margin: 0 auto 3rem auto !important;
+        padding: 0 1rem !important;
+        transform: none !important;
+    }
+}
+
+/* Special handling for extra large screens */
+@media (min-width: 1500px) {
+    .login-form-section {
+        padding-right: 10rem !important;
+    }
+
+    .login-info-section {
+        flex: 1;
+    }
+}
