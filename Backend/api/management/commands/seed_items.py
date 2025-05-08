@@ -26,7 +26,8 @@ class Command(BaseCommand):
                 sku=sku,
                 quantity=quantity,
                 price=price,
-                category=category
+                category=category,
+                image_url = "https://picsum.photos/seed/${item.id}/400/200"
             )
             self.stdout.write(self.style.SUCCESS(f"Created item: {item}"))
 

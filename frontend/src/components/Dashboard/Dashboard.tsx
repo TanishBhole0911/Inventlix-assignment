@@ -5,9 +5,6 @@ import {
     Typography,
     Button,
     Grid,
-    Card,
-    CardContent,
-    CardActions,
     Container,
     AppBar,
     Toolbar,
@@ -21,20 +18,24 @@ import {
     Alert,
     Snackbar,
     Slider,
-    Chip,
     Divider,
     Paper,
     Pagination,
-    Stack
+    Stack,
+    IconButton,
+    InputAdornment
 } from '@mui/material';
 import {
     Inventory2Outlined,
     LogoutOutlined,
     Add,
     Refresh,
-    LocalOfferOutlined
+    CloudUpload,
+    Delete,
+    Search
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { InventoryCard } from './components/InventoryCard';
 interface InventoryItem {
     id: number;
     product_name: string;
@@ -42,6 +43,7 @@ interface InventoryItem {
     quantity: number;
     price: string;
     category: string;
+    image?: string;
 }
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -76,10 +78,16 @@ const Dashboard: React.FC = () => {
         category: 'Electronics'
     });
 
+    const [newItemImageFile, setNewItemImageFile] = useState<File | null>(null);
+    const [newItemImagePreview, setNewItemImagePreview] = useState<string | null>(null);
+    const [editItemImageFile, setEditItemImageFile] = useState<File | null>(null);
+    const [editItemImagePreview, setEditItemImagePreview] = useState<string | null>(null);
+
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const categories = ['Electronics', 'Clothing', 'Home', 'Sports', 'Toys'];
     const [priceRange, setPriceRange] = useState<number[]>([0, 1000]);
     const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(1000);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     const [page, setPage] = useState<number>(1);
     const [itemsPerPage] = useState<number>(10);
@@ -152,6 +160,55 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const uploadImageToCloudinary = async (file: File): Promise<string> => {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME!;
+        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET!;
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', uploadPreset);
+
+        const response = await axios.post(url, formData);
+        return response.data.secure_url;
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setNewItemImageFile(file);
+
+            const previewUrl = URL.createObjectURL(file);
+            setNewItemImagePreview(previewUrl);
+        }
+    };
+
+    const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setEditItemImageFile(file);
+
+            const previewUrl = URL.createObjectURL(file);
+            setEditItemImagePreview(previewUrl);
+        }
+    };
+
+    const clearImageSelection = () => {
+        setNewItemImageFile(null);
+        if (newItemImagePreview) {
+            URL.revokeObjectURL(newItemImagePreview);
+            setNewItemImagePreview(null);
+        }
+    };
+
+    const clearEditImageSelection = () => {
+        setEditItemImageFile(null);
+        if (editItemImagePreview) {
+            URL.revokeObjectURL(editItemImagePreview);
+            setEditItemImagePreview(null);
+        }
+    };
+
     const handleAddItem = async () => {
         try {
             const token = localStorage.getItem('accessToken');
@@ -160,7 +217,14 @@ const Dashboard: React.FC = () => {
                 throw new Error('No authentication token found');
             }
 
-            await axios.post(import.meta.env.VITE_API_BASE_URL + '/api/items/', newItem, {
+            let imageUrl = "";
+            if (newItemImageFile) {
+                imageUrl = await uploadImageToCloudinary(newItemImageFile);
+            }
+
+            const payload = { ...newItem, image_url: imageUrl };
+            console.log('Payload:', imageUrl);
+            await axios.post(import.meta.env.VITE_API_BASE_URL + '/api/items/', payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -180,8 +244,13 @@ const Dashboard: React.FC = () => {
                 price: '',
                 category: 'Electronics'
             });
-            setOpenAddDialog(false);
 
+            if (newItemImagePreview) {
+                URL.revokeObjectURL(newItemImagePreview);
+                setNewItemImagePreview(null);
+            }
+            setNewItemImageFile(null);
+            setOpenAddDialog(false);
             fetchInventoryItems();
         } catch (error) {
             console.error('Error adding item:', error);
@@ -202,6 +271,7 @@ const Dashboard: React.FC = () => {
             price: item.price,
             category: item.category
         });
+        setEditItemImagePreview(item.image || null);
         setOpenEditDialog(true);
     };
 
@@ -227,7 +297,14 @@ const Dashboard: React.FC = () => {
                 throw new Error('No authentication token found');
             }
 
-            await axios.put(import.meta.env.VITE_API_BASE_URL + `/api/items/${currentItem.id}/`, editedItem, {
+            let updatedItem = { ...editedItem };
+
+            if (editItemImageFile) {
+                const imageUrl = await uploadImageToCloudinary(editItemImageFile);
+                updatedItem = { ...updatedItem, image: imageUrl };
+            }
+
+            await axios.put(import.meta.env.VITE_API_BASE_URL + `/api/items/${currentItem.id}/`, updatedItem, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -239,6 +316,12 @@ const Dashboard: React.FC = () => {
                 message: 'Item updated successfully!',
                 severity: 'success'
             });
+
+            if (editItemImagePreview && editItemImageFile) {
+                URL.revokeObjectURL(editItemImagePreview);
+                setEditItemImagePreview(null);
+            }
+            setEditItemImageFile(null);
 
             setOpenEditDialog(false);
             fetchInventoryItems();
@@ -407,7 +490,31 @@ const Dashboard: React.FC = () => {
                     <Typography variant="h6" gutterBottom>Filters</Typography>
                     <Divider sx={{ mb: 2 }} />
                     <Grid container spacing={3} alignItems="center">
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={12} lg={4}>
+                            <Typography variant="body1" sx={{ mb: 1 }}>Search:</Typography>
+                            <TextField
+                                size="small"
+                                fullWidth
+                                variant="outlined"
+                                placeholder="Search by product name"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        '&.Mui-focused fieldset': { borderColor: 'orange' },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: 'orange' }
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={6} lg={4}>
                             <Typography variant="body1" sx={{ mb: 1 }}>Category:</Typography>
                             <TextField
                                 select
@@ -423,7 +530,7 @@ const Dashboard: React.FC = () => {
                                 ))}
                             </TextField>
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={6} lg={4}>
                             <Typography variant="body1" sx={{ mb: 1 }}>
                                 Price Range: ${priceRange[0]} - ${priceRange[1]}
                             </Typography>
@@ -457,7 +564,9 @@ const Dashboard: React.FC = () => {
                         const itemPrice = parseFloat(item.price);
                         const meetsMinPrice = itemPrice >= priceRange[0];
                         const meetsMaxPrice = itemPrice <= priceRange[1];
-                        return inCategory && meetsMinPrice && meetsMaxPrice;
+                        const matchesSearch = searchQuery === '' ||
+                            item.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+                        return inCategory && meetsMinPrice && meetsMaxPrice && matchesSearch;
                     });
 
                     const indexOfLastItem = page * itemsPerPage;
@@ -491,116 +600,12 @@ const Dashboard: React.FC = () => {
                                 <Grid container spacing={3}>
                                     {currentItems.map((item) => (
                                         <Grid item xs={12} sm={6} md={4} key={item.id}>
-                                            <Card elevation={3} sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                borderRadius: 3,
-                                                transition: 'all 0.3s ease-in-out',
-                                                overflow: 'hidden',
-                                                position: 'relative',
-                                                '&:hover': {
-                                                    transform: 'translateY(-8px)',
-                                                    boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
-                                                }
-                                            }}>
-                                                <Box
-                                                    component="img"
-                                                    src={`https://picsum.photos/seed/${item.id}/400/200`}
-                                                    alt={item.product_name}
-                                                    sx={{
-                                                        width: '100%',
-                                                        height: 180,
-                                                        objectFit: 'cover'
-                                                    }}
-                                                />
-
-                                                <Box sx={{
-                                                    position: 'absolute',
-                                                    bottom: 'calc(100% - 180px)',
-                                                    right: 0,
-                                                    zIndex: 1,
-                                                    bgcolor: 'rgba(0,0,0,0.6)',
-                                                    borderTopLeftRadius: 8,
-                                                    p: 1
-                                                }}>
-                                                    <Typography
-                                                        variant="h6"
-                                                        sx={{
-                                                            color: 'white',
-                                                            fontWeight: 'bold'
-                                                        }}
-                                                    >
-                                                        ${item.price}
-                                                    </Typography>
-                                                </Box>
-
-                                                <CardContent sx={{
-                                                    flexGrow: 1,
-                                                    p: 3,
-                                                    background: 'linear-gradient(to bottom, rgba(255,165,0,0.05), transparent)'
-                                                }}>
-                                                    <Typography variant="h6" component="div" fontWeight="bold" gutterBottom>
-                                                        {item.product_name}
-                                                    </Typography>
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            SKU: {item.sku}
-                                                        </Typography>
-                                                        <Chip
-                                                            label={item.category}
-                                                            size="small"
-                                                            sx={{
-                                                                bgcolor: 'rgba(0, 0, 0, 0.08)',
-                                                                fontSize: '0.7rem'
-                                                            }}
-                                                        />
-                                                    </Box>
-                                                    <Divider sx={{ my: 2 }} />
-                                                    <Box sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        p: 2,
-                                                        bgcolor: 'rgba(255, 165, 0, 0.08)',
-                                                        borderRadius: 2
-                                                    }}>
-                                                        <Typography variant="h6" align='center' fontWeight="bold">
-                                                            Quantity: {item.quantity}
-                                                        </Typography>
-                                                    </Box>
-                                                </CardContent>
-                                                {isAdmin && (
-                                                    <CardActions sx={{
-                                                        justifyContent: 'space-between',
-                                                        p: 2,
-                                                        bgcolor: 'rgba(0,0,0,0.03)'
-                                                    }}>
-                                                        <Button
-                                                            size="small"
-                                                            sx={{
-                                                                color: 'orange',
-                                                                fontWeight: 'medium',
-                                                                '&:hover': { bgcolor: 'rgba(255, 165, 0, 0.08)' }
-                                                            }}
-                                                            onClick={() => handleEditDialogOpen(item)}
-                                                        >
-                                                            Edit
-                                                        </Button>
-                                                        <Button
-                                                            size="small"
-                                                            sx={{
-                                                                color: '#ff3d00',
-                                                                fontWeight: 'medium',
-                                                                '&:hover': { bgcolor: 'rgba(255, 61, 0, 0.08)' }
-                                                            }}
-                                                            onClick={() => handleDeleteDialogOpen(item)}
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    </CardActions>
-                                                )}
-                                            </Card>
+                                            <InventoryCard
+                                                item={item}
+                                                isAdmin={isAdmin}
+                                                onEdit={handleEditDialogOpen}
+                                                onDelete={handleDeleteDialogOpen}
+                                            />
                                         </Grid>
                                     ))}
                                 </Grid>
@@ -735,6 +740,79 @@ const Dashboard: React.FC = () => {
                         <MenuItem value="Home Goods">Home Goods</MenuItem>
                         <MenuItem value="Office Supplies">Office Supplies</MenuItem>
                     </TextField>
+                    <Box sx={{ mt: 3, mb: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom >
+                            Product Image
+                        </Typography>
+                        <Box
+                            sx={{
+
+                                borderColor: 'orange',
+                                borderRadius: 1,
+                                p: 3,
+                                textAlign: 'center',
+                                backgroundColor: 'rgba(255, 165, 0, 0.04)',
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255, 165, 0, 0.08)'
+                                }
+                            }}
+                            component="label"
+                        >
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                style={{ display: 'none' }}
+                            />
+                            {!newItemImagePreview ? (
+                                <Box>
+                                    <CloudUpload sx={{ fontSize: 48, color: 'orange', mb: 1 }} />
+                                    <Typography>
+                                        Drag & drop an image here or click to browse
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Supported formats: JPG, PNG, GIF (max 5MB)
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <Box sx={{ position: 'relative' }}>
+                                    <img
+                                        src={newItemImagePreview}
+                                        alt="Product preview"
+                                        style={{
+                                            maxHeight: '200px',
+                                            maxWidth: '100%',
+                                            objectFit: 'contain',
+                                            borderRadius: '4px'
+                                        }}
+                                    />
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            clearImageSelection();
+                                        }}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            right: 0,
+                                            bgcolor: 'rgba(255,255,255,0.8)',
+                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' }
+                                        }}
+                                    >
+                                        <Delete />
+                                    </IconButton>
+                                </Box>
+                            )}
+                        </Box>
+                        {newItemImageFile && (
+                            <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                                Selected file: {newItemImageFile.name} ({(newItemImageFile.size / 1024 / 1024).toFixed(2)} MB)
+                            </Typography>
+                        )}
+                    </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button
@@ -855,6 +933,79 @@ const Dashboard: React.FC = () => {
                             <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                         ))}
                     </TextField>
+                    <Box sx={{ mt: 3, mb: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>
+                            Product Image
+                        </Typography>
+                        <Box
+                            sx={{
+                                border: '2px dashed',
+                                borderColor: 'orange',
+                                borderRadius: 1,
+                                p: 3,
+                                textAlign: 'center',
+                                backgroundColor: 'rgba(255, 165, 0, 0.04)',
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255, 165, 0, 0.08)'
+                                }
+                            }}
+                            component="label"
+                        >
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleEditImageChange}
+                                style={{ display: 'none' }}
+                            />
+                            {!editItemImagePreview ? (
+                                <Box>
+                                    <CloudUpload sx={{ fontSize: 48, color: 'orange', mb: 1 }} />
+                                    <Typography>
+                                        Drag & drop an image here or click to browse
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Supported formats: JPG, PNG, GIF (max 5MB)
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <Box sx={{ position: 'relative' }}>
+                                    <img
+                                        src={editItemImagePreview}
+                                        alt="Product preview"
+                                        style={{
+                                            maxHeight: '200px',
+                                            maxWidth: '100%',
+                                            objectFit: 'contain',
+                                            borderRadius: '4px'
+                                        }}
+                                    />
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            clearEditImageSelection();
+                                        }}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            right: 0,
+                                            bgcolor: 'rgba(255,255,255,0.8)',
+                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' }
+                                        }}
+                                    >
+                                        <Delete />
+                                    </IconButton>
+                                </Box>
+                            )}
+                        </Box>
+                        {editItemImageFile && (
+                            <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                                Selected file: {editItemImageFile.name} ({(editItemImageFile.size / 1024 / 1024).toFixed(2)} MB)
+                            </Typography>
+                        )}
+                    </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button

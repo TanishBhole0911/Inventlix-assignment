@@ -32,4 +32,4 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
-        fields = ['id', 'product_name', 'sku', 'quantity', 'price', 'category']
+        fields = ['id', 'product_name', 'sku', 'quantity', 'price', 'category', 'image_url']
