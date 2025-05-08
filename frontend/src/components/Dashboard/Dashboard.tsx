@@ -43,7 +43,7 @@ interface InventoryItem {
     quantity: number;
     price: string;
     category: string;
-    image?: string;
+    image_url: string;
 }
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -61,7 +61,8 @@ const Dashboard: React.FC = () => {
         sku: '',
         quantity: 0,
         price: '',
-        category: 'Electronics'
+        category: 'Electronics',
+        image_url: ''
     });
 
     const [alertState, setAlertState] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({
@@ -75,7 +76,8 @@ const Dashboard: React.FC = () => {
         sku: '',
         quantity: 0,
         price: '',
-        category: 'Electronics'
+        category: 'Electronics',
+        image_url: ''
     });
 
     const [newItemImageFile, setNewItemImageFile] = useState<File | null>(null);
@@ -222,8 +224,14 @@ const Dashboard: React.FC = () => {
                 imageUrl = await uploadImageToCloudinary(newItemImageFile);
             }
 
-            const payload = { ...newItem, image_url: imageUrl };
-            console.log('Payload:', imageUrl);
+            const payload = {
+                ...newItem,
+                image_url: imageUrl  // Changed from image_url to image
+            };
+            console.log('Payload:', newItem);
+
+
+            console.log('Payload:', payload);
             await axios.post(import.meta.env.VITE_API_BASE_URL + '/api/items/', payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -242,7 +250,8 @@ const Dashboard: React.FC = () => {
                 sku: '',
                 quantity: 0,
                 price: '',
-                category: 'Electronics'
+                category: 'Electronics',
+                image_url: ''
             });
 
             if (newItemImagePreview) {
@@ -269,9 +278,10 @@ const Dashboard: React.FC = () => {
             sku: item.sku,
             quantity: item.quantity,
             price: item.price,
-            category: item.category
+            category: item.category,
+            image_url: item.image_url
         });
-        setEditItemImagePreview(item.image || null);
+        setEditItemImagePreview(item.image_url || null);
         setOpenEditDialog(true);
     };
 
@@ -301,7 +311,7 @@ const Dashboard: React.FC = () => {
 
             if (editItemImageFile) {
                 const imageUrl = await uploadImageToCloudinary(editItemImageFile);
-                updatedItem = { ...updatedItem, image: imageUrl };
+                updatedItem = { ...updatedItem, image_url: imageUrl };
             }
 
             await axios.put(import.meta.env.VITE_API_BASE_URL + `/api/items/${currentItem.id}/`, updatedItem, {
